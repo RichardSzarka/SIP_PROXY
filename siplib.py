@@ -65,6 +65,12 @@ rx_rport = re.compile(b";rport$|;rport;")
 rx_contact_expires = re.compile(b"expires=([^;$]*)")
 rx_expires = re.compile(b"^Expires: (.*)$")
 
+rx_ringing = re.compile(b"Ringing")
+rx_ok = re.compile(b"OK|Ok|oK|ok|0k|0K")
+rx_call_id = re.compile(b"Call-ID")
+rx_decline = re.compile(b"Decline")
+rx_request_ter = re.compile(b"Request terminated")
+
 # global dictionnary
 recordroute = b""
 topvia = b""
@@ -88,6 +94,88 @@ def quotechars(chars):
 def showtime():
     logging.debug(time.strftime("(%H:%M:%S)", time.localtime()))
 
+
+calls = []
+
+
+class Call:
+    def __init__(self, data):
+        for info in data:
+            if rx_from.search(info):
+                self.From = str(rx_uri.search(info).group(), "utf8")
+            elif rx_to.search(info):
+                self.to = str(rx_uri.search(info).group(), "utf8")
+            elif rx_call_id.search(info):
+                self.call_id = info
+
+        self.ringing_time = ""
+        self.start_time = ""
+        self.end_time = ""
+
+
+log = open("log.txt", "w")
+log.write("------------------------------------------\n\n")
+log.close()
+
+
+def make_log(data):
+    global log
+    for info in data:
+        if rx_ringing.search(info):
+            new_call = Call(data)
+            t = time.localtime()
+            new_call.ringing_time = time.strftime("%H:%M:%S", t)
+            calls.append(new_call)
+            continue
+        elif rx_ok.search(info):
+            for call in calls:
+                for info2 in data:
+                    if call.call_id == info2:
+                        t = time.localtime()
+                        if call.start_time == "":
+                            call.start_time = time.strftime("%H:%M:%S", t)
+                        break
+            break
+
+        elif rx_bye.search(info):
+
+            for call in calls:
+                for info2 in data:
+                    if call.call_id == info2:
+                        t = time.localtime()
+                        call.end_time = time.strftime("%H:%M:%S", t)
+                        log = open("log.txt", "a")
+                        log.write(f"from: {call.From}\n to: {call.to} \n ringing: {call.ringing_time} \n start: {call.start_time} \n end: {call.end_time} \n")
+                        log.write("\n------------------------------------------\n\n")
+                        log.close()
+                        calls.pop(calls.index(call))
+                        break
+            break
+
+        elif rx_decline.search(info):
+            for call in calls:
+                for info2 in data:
+                    if call.call_id == info2:
+                        call.end_time = time.strftime("%H:%M:%S", time.localtime())
+                        log = open("log.txt", "a")
+                        log.write(f"from: {call.From}\n to: {call.to} \n ringing: {call.ringing_time} \n declined: {call.end_time} \n")
+                        log.write("\n------------------------------------------\n\n")
+                        log.close()
+                        calls.pop(calls.index(call))
+                        break
+
+        elif rx_request_ter.search(info):
+            for call in calls:
+                for info2 in data:
+                    if call.call_id == info2:
+                        call.end_time = time.strftime("%H:%M:%S", time.localtime())
+                        log = open("log.txt", "a")
+                        log.write(f"from: {call.From}\n to: {call.to} \n ringing: {call.ringing_time} \n request terminated: {call.end_time} \n")
+                        log.write("\n------------------------------------------\n\n")
+                        log.close()
+                        calls.pop(calls.index(call))
+                        break
+            break
 
 
 
@@ -379,6 +467,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
     def processRequest(self):
         # print "processRequest"
         if len(self.data) > 0:
+            make_log(self.data)
 
             request_uri = self.data[0]
             if rx_register.search(request_uri):
