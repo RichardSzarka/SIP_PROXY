@@ -22,7 +22,7 @@ import sys
 import time
 import logging
 
-HOST, PORT = "192.168.99.214", 6000
+HOST, PORT = "192.168.99.214",6000
 
 rx_register = re.compile(b"^REGISTER")
 rx_invite = re.compile(b"^INVITE")
@@ -93,6 +93,19 @@ def quotechars(chars):
 
 def showtime():
     logging.debug(time.strftime("(%H:%M:%S)", time.localtime()))
+
+
+def change_texts(data):
+    if data[0] == b'SIP/2.0 100 Trying':
+        data[0] = b'SIP/2.0 100 Skusam'
+
+    elif data[0] == b'SIP/2.0 180 Ringing':
+        data[0] = b'SIP/2.0 180 Zvonim'
+
+    elif data[0] == b'SIP/2.0 486 Busy Here':
+        data[0] = b'SIP/2.0 486 Nechaj ma na pokoji'
+
+    return data
 
 
 calls = []
@@ -468,6 +481,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
         # print "processRequest"
         if len(self.data) > 0:
             make_log(self.data)
+            self.data = change_texts(self.data)
 
             request_uri = self.data[0]
             if rx_register.search(request_uri):
