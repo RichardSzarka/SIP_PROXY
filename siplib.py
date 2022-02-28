@@ -22,7 +22,6 @@ import sys
 import time
 import logging
 
-HOST, PORT = "192.168.99.214",6000
 
 rx_register = re.compile(b"^REGISTER")
 rx_invite = re.compile(b"^INVITE")
@@ -539,12 +538,3 @@ class UDPHandler(socketserver.BaseRequestHandler):
                 logging.warning("---")
 
 
-if __name__ == "__main__":
-
-    recordroute = "Record-Route: <sip:%s:%d;lr>" % (HOST, PORT)
-    topvia = "Via: SIP/2.0/UDP %s:%d" % (HOST, PORT)
-    topvia = bytes(topvia, "utf8")
-
-    server = socketserver.UDPServer((HOST, PORT), UDPHandler)
-
-    server.serve_forever()
