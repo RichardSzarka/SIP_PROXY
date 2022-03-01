@@ -65,6 +65,7 @@ rx_contact_expires = re.compile(b"expires=([^;$]*)")
 rx_expires = re.compile(b"^Expires: (.*)$")
 
 rx_ringing = re.compile(b"Ringing")
+rx_busy = re.compile(b"Busy Here|Busy here|busy here")
 rx_ok = re.compile(b"OK|Ok|oK|ok|0k|0K")
 rx_call_id = re.compile(b"Call-ID")
 rx_decline = re.compile(b"Decline")
@@ -101,7 +102,7 @@ def change_texts(data):
     elif data[0] == b'SIP/2.0 180 Ringing':
         data[0] = b'SIP/2.0 180 Zvonim'
 
-    elif data[0] == b'SIP/2.0 486 Busy Here':
+    elif data[0] == b'SIP/2.0 486 Busy Here' or data[0] == b'SIP/2.0 486 Busy here':
         data[0] = b'SIP/2.0 486 Nechaj ma na pokoji'
 
     return data
@@ -163,6 +164,18 @@ def make_log(data):
                         calls.pop(calls.index(call))
                         break
             break
+
+        elif rx_busy.search(info):
+            for call in calls:
+                for info2 in data:
+                    if call.call_id == info2:
+                        call.end_time = time.strftime("%H:%M:%S", time.localtime())
+                        log = open("log.txt", "a")
+                        log.write(f"from: {call.From}\n to: {call.to} \n ringing: {call.ringing_time} \n busy -> ended: {call.end_time} \n")
+                        log.write("\n------------------------------------------\n\n")
+                        log.close()
+                        calls.pop(calls.index(call))
+                        break
 
         elif rx_decline.search(info):
             for call in calls:
