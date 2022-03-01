@@ -13,7 +13,11 @@ if __name__ == "__main__":
 
         server = siplib.socketserver.UDPServer((HOST, PORT), siplib.UDPHandler)
     except:
-        print("Socket binding went wrong (you probabaly inputed bad IP or PORT)")
+        print("Socket binding sa nepodaril (asi sa port používa alebo ste zadali zlu IP)")
         exit(1)
 
-    server.serve_forever()
+    try:
+        print("Server beží")
+        server.serve_forever()
+    except:
+        print("Server sa vypol")
