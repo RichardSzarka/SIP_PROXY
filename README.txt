@@ -1,0 +1,1 @@
+Pri spustení servera treba zadať IP adresu a port na ktorom server má bežať, následne sa server vypína pomocou CTRL+C
